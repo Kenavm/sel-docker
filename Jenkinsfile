@@ -13,28 +13,27 @@ pipeline{
 
         stage('build image'){
             steps{
-                sh "docker build -t=kenavm/selenium ."
+                sh "docker build -t=kenavm/selenium:latest ."
             }
         }
 
         stage('push image'){
-            steps{
-               sh "docker push kenavm/selenium"
+            environment{
+                DOCKER_HUB = credentials('e2a045a0-e6a4-468c-abf0-700f258e6e2b')
             }
-        }
-
-        stage('selenium-test'){
             steps{
-               build job: 'SELENIUM_DOCKER_RUNNER', parameters: [string(name: 'BROWSER', value: 'firefox')]
-            }
-        }
-
-        stage('deploy-to-prod'){
-            steps{
-               echo "deploying flight-reservation app to PROD env"
+               sh 'echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin'
+               sh "docker push kenavm/selenium:latest"
+               sh "docker tag kenavm/selenium:latest kenavm/selenium:${env.BUILD_NUMBER}"
+               sh "docker push kenavm/selenium:${env.BUILD_NUMBER}"
             }
         }
 
     }
 
+    post {
+        always {
+            sh "docker logout"
+        }
+    }
 }
